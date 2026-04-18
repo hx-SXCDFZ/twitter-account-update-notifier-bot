@@ -1,33 +1,22 @@
-# Python
+.git/
+.github/
 __pycache__/
 *.py[cod]
-*.pyo
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Local configuration and secrets
 .env
 .env.*
 *.env
 !.env.example
 
-# Runtime state and logs
 logs/
 state/
-*.log
-
-# Browser and driver caches
 chrome_profile/
 .wdm/
 .wdm_local/
 
-# Local backups and OS files
 * - *.py
 * - *.env
 *.bak

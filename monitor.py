@@ -37,6 +37,10 @@ class Config:
     log_file: Path = Path("logs/monitor.log")
     enable_beep: bool = True
     chrome_binary: Optional[str] = None
+    chrome_headless: bool = False
+    chrome_no_sandbox: bool = False
+    chrome_disable_dev_shm_usage: bool = False
+    chrome_proxy_server: Optional[str] = None
     chrome_user_data_dir: Optional[str] = None
     chrome_profile_directory: Optional[str] = None
     feishu_webhook: Optional[str] = None
@@ -49,6 +53,13 @@ class Config:
 
 
 _TEMP_PROFILE_DIRS: list[str] = []
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def load_config() -> Config:
@@ -66,8 +77,12 @@ def load_config() -> Config:
         recent_post_count=max(1, int(os.getenv("RECENT_POST_COUNT", "5"))),
         state_file=Path(os.getenv("STATE_FILE", "state/last_seen.json")),
         log_file=Path(os.getenv("LOG_FILE", "logs/monitor.log")),
-        enable_beep=os.getenv("ENABLE_BEEP", "true").lower() in {"1", "true", "yes", "on"},
+        enable_beep=env_bool("ENABLE_BEEP", True),
         chrome_binary=(os.getenv("CHROME_BINARY") or "").strip() or None,
+        chrome_headless=env_bool("CHROME_HEADLESS", False),
+        chrome_no_sandbox=env_bool("CHROME_NO_SANDBOX", False),
+        chrome_disable_dev_shm_usage=env_bool("CHROME_DISABLE_DEV_SHM_USAGE", False),
+        chrome_proxy_server=(os.getenv("CHROME_PROXY_SERVER") or "").strip() or None,
         chrome_user_data_dir=(os.getenv("CHROME_USER_DATA_DIR") or "").strip() or None,
         chrome_profile_directory=(os.getenv("CHROME_PROFILE_DIRECTORY") or "").strip() or None,
         feishu_webhook=(os.getenv("FEISHU_WEBHOOK") or "").strip() or None,
@@ -112,6 +127,20 @@ def build_driver(config: Config) -> webdriver.Chrome:
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
 
+    if config.chrome_headless:
+        options.add_argument("--headless=new")
+        logging.info("Chrome headless mode is enabled")
+
+    if config.chrome_no_sandbox:
+        options.add_argument("--no-sandbox")
+
+    if config.chrome_disable_dev_shm_usage:
+        options.add_argument("--disable-dev-shm-usage")
+
+    if config.chrome_proxy_server:
+        options.add_argument(f"--proxy-server={config.chrome_proxy_server}")
+        logging.info("Chrome proxy server is configured")
+
     if config.chrome_binary:
         options.binary_location = config.chrome_binary
         logging.info("Using Chrome binary: %s", config.chrome_binary)
@@ -128,10 +157,10 @@ def build_driver(config: Config) -> webdriver.Chrome:
         options.add_argument(f"--user-data-dir={temp_profile_dir}")
         logging.info("Using temporary Chrome profile: %s", temp_profile_dir)
 
-    logging.info("Starting Chrome driver via selenium-manager")
+    logging.info("Starting Chrome driver")
     driver = webdriver.Chrome(options=options)
     driver.set_page_load_timeout(config.page_load_timeout_seconds)
-    logging.info("Chrome driver started successfully via selenium-manager")
+    logging.info("Chrome driver started successfully")
     return driver
 
 

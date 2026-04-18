@@ -20,6 +20,7 @@ and can optionally send Feishu or DingTalk webhook notifications.
 - Python 3.10+
 - Google Chrome
 - Windows, macOS, or Linux
+- Docker, if you want to run the monitor in a container
 
 ## Setup
 
@@ -59,6 +60,49 @@ python monitor.py
 On the first run, if no previous state exists, the current recent posts are saved
 as the baseline and future changes trigger alerts.
 
+## Run With Docker
+
+Create `.env` first:
+
+```bash
+copy .env.example .env
+```
+
+Edit `.env` and set `TARGET_USERNAME`.
+
+Build and start the container:
+
+```bash
+docker compose up --build -d
+```
+
+Watch logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop the container:
+
+```bash
+docker compose down
+```
+
+The compose setup runs Chromium in headless mode and persists runtime files to
+local `state/` and `logs/` folders. The `.env` file is passed at runtime and is
+not copied into the Docker image. Local host Chrome profile settings are cleared
+by the default compose file because Windows or macOS Chrome profile paths do not
+work inside the Linux container.
+
+By default, Docker build and runtime traffic use the host machine proxy at:
+
+```dotenv
+HOST_PROXY_URL=http://host.docker.internal:7890
+```
+
+`host.docker.internal` is the hostname containers use to reach the Docker host.
+If your proxy uses another port or protocol, update `HOST_PROXY_URL` in `.env`.
+
 ## Configuration
 
 All configuration is read from `.env`.
@@ -73,6 +117,12 @@ All configuration is read from `.env`.
 | `STATE_FILE` | `state/last_seen.json` | Local state file path. |
 | `LOG_FILE` | `logs/monitor.log` | Local log file path. |
 | `ENABLE_BEEP` | `true` | Enables local sound alerts. |
+| `CHROME_BINARY` | empty | Optional Chrome or Chromium executable path. Docker uses `/usr/bin/chromium`. |
+| `HOST_PROXY_URL` | `http://host.docker.internal:7890` | Docker compose proxy URL for image build, Python HTTP traffic, and Chromium. |
+| `CHROME_HEADLESS` | `false` | Runs Chrome in headless mode. Docker compose sets this to `true`. |
+| `CHROME_NO_SANDBOX` | `false` | Adds Chrome's `--no-sandbox` flag. Docker compose sets this to `true`. |
+| `CHROME_DISABLE_DEV_SHM_USAGE` | `false` | Adds Chrome's `--disable-dev-shm-usage` flag. Docker compose sets this to `true`. |
+| `CHROME_PROXY_SERVER` | empty | Optional Chrome `--proxy-server` value. Docker compose sets it from `HOST_PROXY_URL`. |
 | `CHROME_USER_DATA_DIR` | empty | Optional Chrome user data directory for reusing login state. |
 | `CHROME_PROFILE_DIRECTORY` | empty | Optional Chrome profile name, such as `Default` or `Profile 1`. |
 | `STARTUP_LOGIN_WAIT_SECONDS` | `0` | Optional startup wait for manual login before the first scrape. |
@@ -84,6 +134,11 @@ All configuration is read from `.env`.
 X may require login or change its page structure at any time. If the page shows a
 login wall, set `CHROME_USER_DATA_DIR` and `CHROME_PROFILE_DIRECTORY` to a Chrome
 profile where you are already logged in.
+
+Docker headless mode is best for accounts/pages that do not require an
+interactive login. If X requires login, use a logged-in Chrome profile locally or
+edit `docker-compose.yml` to mount a Linux Chrome profile into the container and
+point `CHROME_USER_DATA_DIR` at that mounted path.
 
 Use this project responsibly and make sure your usage complies with X's terms and
 applicable laws.
