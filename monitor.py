@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib import error as url_error
@@ -56,6 +56,10 @@ class Config:
 
 
 _TEMP_PROFILE_DIRS: list[str] = []
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -196,7 +200,7 @@ def save_seen_ids(state_file: Path, seen_ids: list[str]) -> None:
     state_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "seen_ids": seen_ids,
-        "updated_at": datetime.utcnow().isoformat() + "Z",
+        "updated_at": utc_now_iso(),
     }
     state_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -204,7 +208,7 @@ def save_seen_ids(state_file: Path, seen_ids: list[str]) -> None:
 def _diagnostic_name(reason: str) -> str:
     sanitized = "".join(ch if ch.isalnum() else "-" for ch in reason.lower()).strip("-")
     sanitized = "-".join(part for part in sanitized.split("-") if part)
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S%fZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     return f"{timestamp}-{sanitized or 'browser-error'}"
 
 
@@ -213,7 +217,7 @@ def write_browser_diagnostics(driver: webdriver.Chrome, config: Config, reason: 
     base = config.diagnostics_dir / _diagnostic_name(reason)
 
     metadata = {
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": utc_now_iso(),
         "reason": reason,
         "target_username": config.target_username,
         "target_url": config.target_url,

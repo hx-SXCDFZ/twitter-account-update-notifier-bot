@@ -118,10 +118,12 @@ docker compose down
 ```
 
 The compose setup runs Chromium in headless mode and persists runtime files to
-local `state/`, `logs/`, and `diagnostics/` folders. The `.env` file is passed
-at runtime and is not copied into the Docker image. Local host Chrome profile
-settings are cleared by the default compose file because Windows or macOS Chrome
-profile paths do not work inside the Linux container.
+local `state/`, `logs/`, and `diagnostics/` folders. Docker writes its log file
+to `logs/docker-monitor.log`, while local Python runs use `logs/monitor.log` by
+default. The `.env` file is passed at runtime and is not copied into the Docker
+image. Local host Chrome profile settings are cleared by the default compose file
+because Windows or macOS Chrome profile paths do not work inside the Linux
+container.
 
 By default, Docker build and runtime traffic use the host machine proxy at:
 
@@ -144,7 +146,7 @@ All configuration is read from `.env`.
 | `PAGE_LOAD_TIMEOUT_SECONDS` | `45` | Selenium page load timeout. |
 | `RECENT_POST_COUNT` | `5` | Number of recent authored posts to track. |
 | `STATE_FILE` | `state/last_seen.json` | Local state file path. |
-| `LOG_FILE` | `logs/monitor.log` | Local log file path. |
+| `LOG_FILE` | `logs/monitor.log` | Local log file path. Docker Compose overrides this to `/app/logs/docker-monitor.log`. |
 | `DIAGNOSTICS_DIR` | `diagnostics` | Directory for browser diagnostics when scraping fails. |
 | `DIAGNOSTICS_INTERVAL_SECONDS` | `300` | Minimum seconds between diagnostic captures. Use `0` to capture every recoverable browser failure. |
 | `DIAGNOSTICS_HTML_MAX_CHARS` | `500000` | Maximum page-source characters saved per diagnostic HTML file. Use `0` to save full HTML. |

@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CHROME_DISABLE_DEV_SHM_USAGE=true \
     ENABLE_BEEP=false \
     STATE_FILE=/app/state/last_seen.json \
-    LOG_FILE=/app/logs/monitor.log \
+    LOG_FILE=/app/logs/docker-monitor.log \
     DIAGNOSTICS_DIR=/app/diagnostics
 
 WORKDIR /app
