@@ -1,4 +1,4 @@
-# Stalk Tanji
+# Twitter Account Update Notifier Bot
 
 A lightweight Python monitor for `https://x.com/<username>/with_replies`.
 

@@ -1,4 +1,4 @@
-# Product Requirements: X Realtime Monitor
+# Product Requirements: Twitter Account Update Notifier Bot
 
 ## Background
 
