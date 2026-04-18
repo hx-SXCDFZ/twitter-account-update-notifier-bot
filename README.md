@@ -57,6 +57,27 @@ TARGET_USERNAME=ProbiusOfficial
 Do not commit `.env`; it may contain local paths, login profile locations, and
 webhook secrets.
 
+## First Deployment Checklist
+
+- [ ] Copy `.env.example` to `.env`.
+- [ ] Set `TARGET_USERNAME` to the X account you want to monitor. The default is
+  `ProbiusOfficial`.
+- [ ] Choose one runtime mode: local Python with `python monitor.py`, Docker with
+  the prebuilt GHCR image, or Docker with `docker compose up --build -d`.
+- [ ] Confirm proxy settings. Keep
+  `HOST_PROXY_URL=http://host.docker.internal:7890` for a host proxy on port
+  `7890`, change it for a different proxy, or set `HOST_PROXY_URL=` to disable
+  proxy use.
+- [ ] Configure notifications. Set `FEISHU_WEBHOOK` to a Feishu/Lark custom bot
+  webhook URL for Feishu alerts, leave it empty to disable Feishu, and set
+  `DINGTALK_WEBHOOK` only if you also want DingTalk alerts.
+- [ ] Keep `.env` private. It may contain webhook secrets and local profile
+  paths.
+- [ ] Start the monitor, then check `logs/monitor.log` for local runs or
+  `logs/docker-monitor.log` for Docker runs.
+- [ ] If X shows a login wall, verify the monitor locally with a logged-in
+  Chrome profile before relying on Docker headless mode.
+
 ## Monitor Another Account
 
 This project defaults to `@ProbiusOfficial`, but it is not hardcoded to that
@@ -99,7 +120,14 @@ copy .env.example .env
 
 Edit `.env` if you want to monitor an account other than `@ProbiusOfficial`.
 
-Build and start the container:
+Use the prebuilt GHCR image:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Or build locally and start the container:
 
 ```bash
 docker compose up --build -d
@@ -133,6 +161,34 @@ HOST_PROXY_URL=http://host.docker.internal:7890
 
 `host.docker.internal` is the hostname containers use to reach the Docker host.
 If your proxy uses another port or protocol, update `HOST_PROXY_URL` in `.env`.
+If you do not need a proxy, set `HOST_PROXY_URL=` in `.env`.
+
+## Container Images
+
+Release images are published to GitHub Container Registry:
+
+```text
+ghcr.io/hx-sxcdfz/probiusofficial-x-reply-notifier
+```
+
+Stable releases publish these tags:
+
+- the exact release tag, such as `v0.1.2`
+- the semantic version without `v`, such as `0.1.2`
+- the minor version, such as `0.1`
+- `latest`
+
+Pull a specific release:
+
+```bash
+docker pull ghcr.io/hx-sxcdfz/probiusofficial-x-reply-notifier:v0.1.2
+```
+
+For reproducible deployments, pin `DOCKER_IMAGE` in `.env` to a release tag:
+
+```dotenv
+DOCKER_IMAGE=ghcr.io/hx-sxcdfz/probiusofficial-x-reply-notifier:v0.1.2
+```
 
 ## Configuration
 
@@ -141,6 +197,7 @@ All configuration is read from `.env`.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `TARGET_USERNAME` | required | X username to monitor, with or without `@`. |
+| `DOCKER_IMAGE` | `ghcr.io/hx-sxcdfz/probiusofficial-x-reply-notifier:latest` | Docker image used by Docker Compose. Pin this to a release tag for reproducible deployments. |
 | `CHECK_INTERVAL_SECONDS` | `60` | Base polling interval. |
 | `CHECK_JITTER_SECONDS` | `10` | Random jitter added to the polling interval. |
 | `PAGE_LOAD_TIMEOUT_SECONDS` | `45` | Selenium page load timeout. |
@@ -152,7 +209,7 @@ All configuration is read from `.env`.
 | `DIAGNOSTICS_HTML_MAX_CHARS` | `500000` | Maximum page-source characters saved per diagnostic HTML file. Use `0` to save full HTML. |
 | `ENABLE_BEEP` | `true` | Enables local sound alerts. |
 | `CHROME_BINARY` | empty | Optional Chrome or Chromium executable path. Docker uses `/usr/bin/chromium`. |
-| `HOST_PROXY_URL` | `http://host.docker.internal:7890` | Docker compose proxy URL for image build, Python HTTP traffic, and Chromium. |
+| `HOST_PROXY_URL` | `http://host.docker.internal:7890` | Docker compose proxy URL for image build, Python HTTP traffic, and Chromium. Set this to an empty value to disable the proxy. |
 | `CHROME_HEADLESS` | `false` | Runs Chrome in headless mode. Docker compose sets this to `true`. |
 | `CHROME_NO_SANDBOX` | `false` | Adds Chrome's `--no-sandbox` flag. Docker compose sets this to `true`. |
 | `CHROME_DISABLE_DEV_SHM_USAGE` | `false` | Adds Chrome's `--disable-dev-shm-usage` flag. Docker compose sets this to `true`. |
@@ -202,7 +259,8 @@ equivalent Linux Chrome profile into the container if you need Docker deployment
 
 GitHub Actions runs on pushes and pull requests. The workflow installs Python
 dependencies, checks `monitor.py` syntax, validates Docker Compose, and builds the
-Docker image.
+Docker image. A separate release workflow publishes Docker images to GHCR when a
+GitHub release is published, and can also be run manually for an existing tag.
 
 ## License
 

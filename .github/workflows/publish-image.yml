@@ -1,0 +1,88 @@
+name: Publish Docker Image
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish, for example v0.1.2"
+        required: true
+        type: string
+      push_latest:
+        description: "Also tag this image as latest"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve release image settings
+        id: release
+        shell: bash
+        run: |
+          image="${REGISTRY}/${IMAGE_NAME}"
+          image="${image,,}"
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+            push_latest="${{ github.event.release.prerelease == false }}"
+          else
+            tag="${{ inputs.tag }}"
+            push_latest="${{ inputs.push_latest }}"
+          fi
+
+          if [ -z "$tag" ]; then
+            echo "A release tag is required." >&2
+            exit 1
+          fi
+
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "push_latest=${push_latest}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.release.outputs.image }}
+          tags: |
+            type=raw,value=${{ steps.release.outputs.tag }}
+            type=semver,pattern={{version}},value=${{ steps.release.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.release.outputs.tag }}
+            type=raw,value=latest,enable=${{ steps.release.outputs.push_latest == 'true' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
